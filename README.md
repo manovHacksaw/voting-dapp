@@ -58,8 +58,7 @@ This project demonstrates a decentralized voting application built using Next.js
 
 ## Running Tests
 - To run tests for the smart contracts, use:
-  ```bash
-  npx hardhat test
+  ```bash  npx hardhat test
    
 
 ## Deployement
