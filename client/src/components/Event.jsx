@@ -10,24 +10,33 @@ const Event = () => {
     const [candidates, setCandidates] = useState([]);
     const [votes, setVotes] = useState([]);
     const [loading, setLoading] = useState(true);
-
+    const [userKey, setUserKey] = useState(""); // For registering with a key
 
     useEffect(() => {
         if (id !== undefined) {
             const event = votingEvents[id];
-            setEventDetails(event);
+            
             if (event) {
-                const { candidates, votes } = getResults(id);
-                setCandidates(candidates);
-                setVotes(votes);
+                setEventDetails(event);
+                fetchEventResults(id); // Fetch candidates and votes
             }
             setLoading(false);
         }
     }, [id, votingEvents]);
 
+    const fetchEventResults = async (eventId) => {
+        try {
+            const { candidates, votes } = await getResults(eventId); // Fetch results from contract
+            setCandidates(candidates);
+            setVotes(votes);
+        } catch (error) {
+            console.error("Error fetching results:", error);
+        }
+    };
+
     const handleRegisterVoter = async () => {
         try {
-            await registerVoter(id); // Call the registerVoter function with the event ID
+            await registerVoter(id, userKey); // Call registerVoter with event ID and key
             alert('Registered as a voter successfully!');
         } catch (error) {
             console.error(error);
@@ -37,8 +46,9 @@ const Event = () => {
 
     const handleRegisterCandidate = async () => {
         try {
-            await registerCandidate(id); // Call the registerCandidate function with the event ID
+            await registerCandidate(id, userKey); // Call registerCandidate with event ID and key
             alert('Registered as a candidate successfully!');
+            fetchEventResults(id); // Refresh candidate list
         } catch (error) {
             console.error(error);
             alert('Failed to register as a candidate: ' + error.message);
@@ -56,12 +66,17 @@ const Event = () => {
             <p>Organizer: {eventDetails.organizer}</p>
             <h2>Candidates</h2>
             <ul>
-                {candidates.map((candidate, index) => (
-                    <li key={index}>
-                        {candidate} - Votes: {votes[index]}
-                    </li>
-                ))}
+                {candidates.length > 0 ? (
+                    candidates.map((candidate, index) => (
+                        <li key={index}>
+                            {candidate} - Votes: {votes[index]}
+                        </li>
+                    ))
+                ) : (
+                    <p>No candidates yet.</p>
+                )}
             </ul>
+            
             {!account ? (
                 <div>
                     <p>Please connect your wallet to participate in this voting event.</p>
@@ -69,6 +84,12 @@ const Event = () => {
                 </div>
             ) : (
                 <div>
+                    <input
+                        type="text"
+                        placeholder="Enter your key to participate"
+                        value={userKey}
+                        onChange={(e) => setUserKey(e.target.value)}
+                    />
                     <button onClick={handleRegisterVoter}>Register as Voter</button>
                     <button onClick={handleRegisterCandidate}>Register as Candidate</button>
                 </div>
