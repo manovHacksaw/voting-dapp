@@ -9,6 +9,8 @@ contract Voting {
         string key;
         bool ended;
         mapping(address => bool) hasVoted;
+        mapping(address => bool) registeredVoters; // Track registered voters
+        mapping(address => bool) registeredCandidates; // Track registered candidates
         address[] candidates;
         mapping(address => uint256) votes;
     }
@@ -42,13 +44,33 @@ contract Voting {
         return eventCount;
     }
 
-    function registerCandidate(uint256 eventId, string memory _key) public {
+    function registerVoter(uint256 eventId, string memory _key) public {
+        VotingEvent storage voting = votingEvents[eventId];
         require(
-            keccak256(abi.encodePacked(_key)) ==
-                keccak256(abi.encodePacked(votingEvents[eventId].key)),
+            keccak256(abi.encodePacked(_key)) == 
+            keccak256(abi.encodePacked(voting.key)),
             "Invalid key"
         );
-        votingEvents[eventId].candidates.push(msg.sender);
+        require(!voting.registeredVoters[msg.sender], "You are already registered as a voter");
+        require(!voting.registeredCandidates[msg.sender], "You cannot be a voter since you are a candidate");
+        require(msg.sender != voting.organizer, "Organizer cannot register as a voter");
+
+        voting.registeredVoters[msg.sender] = true; // Mark the sender as registered
+    }
+
+    function registerCandidate(uint256 eventId, string memory _key) public {
+        VotingEvent storage voting = votingEvents[eventId];
+        require(
+            keccak256(abi.encodePacked(_key)) == 
+            keccak256(abi.encodePacked(voting.key)),
+            "Invalid key"
+        );
+        require(!voting.registeredCandidates[msg.sender], "You are already registered as a candidate");
+        require(!voting.registeredVoters[msg.sender], "You cannot be a candidate since you are a voter");
+        require(msg.sender != voting.organizer, "Organizer cannot register as a candidate");
+
+        voting.registeredCandidates[msg.sender] = true; // Mark the sender as a registered candidate
+        voting.candidates.push(msg.sender); // Add to the candidates list
     }
 
     function vote(
@@ -58,11 +80,13 @@ contract Voting {
     ) public {
         VotingEvent storage voting = votingEvents[eventId];
         require(
-            keccak256(abi.encodePacked(_key)) ==
-                keccak256(abi.encodePacked(voting.key)),
+            keccak256(abi.encodePacked(_key)) == 
+            keccak256(abi.encodePacked(voting.key)),
             "Invalid key"
         );
         require(!voting.hasVoted[msg.sender], "You have already voted");
+        require(voting.registeredVoters[msg.sender], "You are not registered as a voter");
+        require(msg.sender != candidate, "You cannot vote for yourself");
 
         voting.votes[candidate]++;
         voting.hasVoted[msg.sender] = true;
