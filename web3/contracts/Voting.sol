@@ -9,10 +9,11 @@ contract Voting {
         string key;
         bool ended;
         mapping(address => bool) hasVoted;
-        mapping(address => bool) registeredVoters; // Track registered voters
-        mapping(address => bool) registeredCandidates; // Track registered candidates
+        mapping(address => bool) registeredVoters;
+        mapping(address => bool) registeredCandidates;
         address[] candidates;
         mapping(address => uint256) votes;
+        mapping(address => string) imageHashes; // Add this line to store candidate image hashes
     }
 
     mapping(uint => VotingEvent) public votingEvents;
@@ -47,30 +48,53 @@ contract Voting {
     function registerVoter(uint256 eventId, string memory _key) public {
         VotingEvent storage voting = votingEvents[eventId];
         require(
-            keccak256(abi.encodePacked(_key)) == 
-            keccak256(abi.encodePacked(voting.key)),
+            keccak256(abi.encodePacked(_key)) ==
+                keccak256(abi.encodePacked(voting.key)),
             "Invalid key"
         );
-        require(!voting.registeredVoters[msg.sender], "You are already registered as a voter");
-        require(!voting.registeredCandidates[msg.sender], "You cannot be a voter since you are a candidate");
-        require(msg.sender != voting.organizer, "Organizer cannot register as a voter");
+        require(
+            !voting.registeredVoters[msg.sender],
+            "You are already registered as a voter"
+        );
+        require(
+            !voting.registeredCandidates[msg.sender],
+            "You cannot be a voter since you are a candidate"
+        );
+        require(
+            msg.sender != voting.organizer,
+            "Organizer cannot register as a voter"
+        );
 
         voting.registeredVoters[msg.sender] = true; // Mark the sender as registered
     }
 
-    function registerCandidate(uint256 eventId, string memory _key) public {
+    function registerCandidate(
+        uint256 eventId,
+        string memory _key,
+        string memory imageHash
+    ) public {
         VotingEvent storage voting = votingEvents[eventId];
         require(
-            keccak256(abi.encodePacked(_key)) == 
-            keccak256(abi.encodePacked(voting.key)),
+            keccak256(abi.encodePacked(_key)) ==
+                keccak256(abi.encodePacked(voting.key)),
             "Invalid key"
         );
-        require(!voting.registeredCandidates[msg.sender], "You are already registered as a candidate");
-        require(!voting.registeredVoters[msg.sender], "You cannot be a candidate since you are a voter");
-        require(msg.sender != voting.organizer, "Organizer cannot register as a candidate");
+        require(
+            !voting.registeredCandidates[msg.sender],
+            "You are already registered as a candidate"
+        );
+        require(
+            !voting.registeredVoters[msg.sender],
+            "You cannot be a candidate since you are a voter"
+        );
+        require(
+            msg.sender != voting.organizer,
+            "Organizer cannot register as a candidate"
+        );
 
         voting.registeredCandidates[msg.sender] = true; // Mark the sender as a registered candidate
         voting.candidates.push(msg.sender); // Add to the candidates list
+        voting.imageHashes[msg.sender] = imageHash; // Store the image hash
     }
 
     function vote(
@@ -80,12 +104,15 @@ contract Voting {
     ) public {
         VotingEvent storage voting = votingEvents[eventId];
         require(
-            keccak256(abi.encodePacked(_key)) == 
-            keccak256(abi.encodePacked(voting.key)),
+            keccak256(abi.encodePacked(_key)) ==
+                keccak256(abi.encodePacked(voting.key)),
             "Invalid key"
         );
         require(!voting.hasVoted[msg.sender], "You have already voted");
-        require(voting.registeredVoters[msg.sender], "You are not registered as a voter");
+        require(
+            voting.registeredVoters[msg.sender],
+            "You are not registered as a voter"
+        );
         require(msg.sender != candidate, "You cannot vote for yourself");
 
         voting.votes[candidate]++;
@@ -96,10 +123,28 @@ contract Voting {
         uint256 eventId
     ) public view returns (address[] memory, uint256[] memory) {
         VotingEvent storage voting = votingEvents[eventId];
-        uint[] memory resultVotes = new uint[](voting.candidates.length);
-        for (uint i = 0; i < voting.candidates.length; i++) {
+        uint256[] memory resultVotes = new uint256[](voting.candidates.length);
+        for (uint256 i = 0; i < voting.candidates.length; i++) {
             resultVotes[i] = voting.votes[voting.candidates[i]];
         }
         return (voting.candidates, resultVotes);
+    }
+
+    function getCandidateImage(
+        uint256 eventId,
+        address candidate
+    ) public view returns (string memory) {
+        VotingEvent storage voting = votingEvents[eventId];
+        return voting.imageHashes[candidate]; // Return the image hash for the given candidate
+    }
+
+    function endVotingEvent(uint256 eventId) public onlyOrganizer(eventId) {
+        VotingEvent storage voting = votingEvents[eventId];
+        require(!voting.ended, "Voting event already ended");
+        voting.ended = true; // Mark the voting event as ended
+    }
+
+    function isVotingEnded(uint256 eventId) public view returns (bool) {
+        return votingEvents[eventId].ended;
     }
 }
