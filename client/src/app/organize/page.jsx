@@ -12,6 +12,8 @@ const OrganizeVoting = () => {
      const [loading, setLoading] = useState(false);
      const [error, setError] = useState('');
 
+    
+
      const handleSubmit = async (e) => {
           e.preventDefault();
           setLoading(true);
@@ -75,6 +77,7 @@ const OrganizeVoting = () => {
                             required
                         />
                     </div>
+                   
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     <button type="submit" disabled={loading}>
                         {loading ? 'Creating...' : 'Create Voting Event'}

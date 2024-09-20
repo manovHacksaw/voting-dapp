@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useVoting } from "@/context/VotingContext";
+import axios from 'axios';
+import { pinata } from '../../../../configPinata';
 
 const EventDetails = ({ params }) => {
     const { id } = params; // Get the ID from params
@@ -9,6 +11,54 @@ const EventDetails = ({ params }) => {
     const [candidates, setCandidates] = useState([]);
     const [votes, setVotes] = useState([]);
     const [userKey, setUserKey] = useState(''); // Store user-provided key/password
+    const [file, setFile] = useState(null); // Set initial file state to null
+
+    const fileInputRef = useRef(null); // Create a ref for the file input
+
+    const handleOpenFileExplorer = () => {
+        fileInputRef.current.click(); // Trigger the file input click
+    };
+
+    // Log the uploaded file when it changes
+    const handleFileChange = async (e) => {
+        const selectedFile = e.target.files[0];
+        setFile(selectedFile);
+        console.log("File uploaded:", file); // Log the uploaded file
+
+
+        if (selectedFile) {
+            try {
+                const formData = new FormData();
+                formData.append("file", selectedFile);
+
+                console.log("Initializing upload to Pinata...")
+
+                const res = await axios({
+                    method: "post",
+                    url: "https://api.pinata.cloud/pinning/pinFileToIPFS",
+                    data: formData,
+                    headers: {
+                        pinata_api_key: process.env.NEXT_PUBLIC_PINATA_API_KEY,
+                        pinata_secret_api_key: process.env.NEXT_PUBLIC_PINATA_API_SECRET,
+                        "Content-Type": "multipart/form-data"
+                    }
+                })
+
+                console.log(res);
+
+
+            } catch (error) {
+                console.error('Pinata IPFS file upload error:', {
+                    message: error.message,
+                    status: error.response ? error.response.status : 'N/A',
+                    data: error.response ? error.response.data : 'N/A',
+                    headers: error.response ? error.response.headers : 'N/A',
+                  });
+                  throw error;
+            }
+        }
+
+    };
 
     useEffect(() => {
         if (!loading && id !== undefined && votingEvents.length > 0) {
@@ -94,6 +144,15 @@ const EventDetails = ({ params }) => {
                             placeholder="Enter event key"
                         />
                     </div>
+
+                    {/* File Input */}
+                    <input
+                        type="file"
+                        onChange={handleFileChange} // Update onChange to call handleFileChange
+                        ref={fileInputRef}
+                        style={{ display: 'none' }} // Hide the input
+                    />
+                    <button onClick={handleOpenFileExplorer}>Upload File</button>
 
                     {/* Buttons to register as voter or candidate */}
                     <div>
