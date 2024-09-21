@@ -43,24 +43,24 @@ export const VotingProvider = ({ children }) => {
      useEffect(() => {
           console.log("Fetching voting events...");
           const fetchVotingEvents = async () => {
-              if (account && signer) {
-                  const contractInstance = new ethers.Contract(contractAddress, Voting.abi, signer);
-                  const count = await contractInstance.getEventCount();
-                  const events = [];
-      
-                  for (let i = 0; i < count; i++) {
-                      const event = await contractInstance.votingEvents(i);
-                      events.push(event);
-                  }
-      
-                  setVotingEvents(events);
-                  console.log("Fetched events:", events); // Check if events are being fetched correctly
-              }
+               if (account && signer) {
+                    const contractInstance = new ethers.Contract(contractAddress, Voting.abi, signer);
+                    const count = await contractInstance.getEventCount();
+                    const events = [];
+
+                    for (let i = 0; i < count; i++) {
+                         const event = await contractInstance.votingEvents(i);
+                         events.push(event);
+                    }
+
+                    setVotingEvents(events);
+                    console.log("Fetched events:", events); // Check if events are being fetched correctly
+               }
           };
-      
+
           fetchVotingEvents();
-      }, [account, signer]);
-      
+     }, [account, signer]);
+
 
      const createVotingEvent = async (name, purpose, key) => {
           if (!signer) {
@@ -83,7 +83,7 @@ export const VotingProvider = ({ children }) => {
           if (!signer) {
                throw new Error('Wallet not connected');
           }
-     
+
           const contractInstance = new ethers.Contract(contractAddress, Voting.abi, signer);
           try {
                const tx = await contractInstance.registerVoter(eventId, key); // Assuming registerVoter takes an eventId and key
@@ -95,16 +95,16 @@ export const VotingProvider = ({ children }) => {
                return false; // Return false on failure
           }
      };
-     
+
 
      const registerCandidate = async (eventId, key) => {
           if (!signer) {
                throw new Error('Wallet not connected');
           }
-     
+
           const contractInstance = new ethers.Contract(contractAddress, Voting.abi, signer);
           try {
-               const tx = await contractInstance.registerCandidate(eventId, key); // Assuming registerCandidate takes an eventId and key
+               const tx = await contractInstance.registerCandidate(eventId, key);
                await tx.wait(); // Wait for the transaction to be mined
                console.log('Successfully registered as candidate for event:', eventId);
                return true; // Return true on success
@@ -118,7 +118,7 @@ export const VotingProvider = ({ children }) => {
           if (!signer) {
                throw new Error('Wallet not connected');
           }
-     
+
           const contractInstance = new ethers.Contract(contractAddress, Voting.abi, signer);
           try {
                const [candidates, votes] = await contractInstance.getResults(eventId);
@@ -129,10 +129,29 @@ export const VotingProvider = ({ children }) => {
                return { candidates: [], votes: [] }; // Return empty arrays on failure
           }
      };
-     
+
+     const castVote = async (eventId, candidate, key) => {
+          if (!signer) {
+               throw new Error('Wallet not connected');
+          }
+
+          const contractInstance = new ethers.Contract(contractAddress, Voting.abi, signer);
+
+          try {
+               const tx = await contractInstance.vote(eventId, candidate, key);
+               await tx.wait();
+               console.log("Successfully voted for: ", candidate);
+               return true;
+
+          } catch (error) {
+               console.error("Error casting vote: ", error);
+               return false;
+          }
+     }
+
 
      return (
-          <VotingContext.Provider value={{ account, votingEvents, connectWallet, signer, createVotingEvent, registerVoter, registerCandidate, getResults }}>
+          <VotingContext.Provider value={{ account, votingEvents, connectWallet, signer, createVotingEvent, registerVoter, registerCandidate, getResults, castVote }}>
                {children}
           </VotingContext.Provider>
      );

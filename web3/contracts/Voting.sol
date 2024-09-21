@@ -13,7 +13,6 @@ contract Voting {
         mapping(address => bool) registeredCandidates;
         address[] candidates;
         mapping(address => uint256) votes;
-        mapping(address => string) imageHashes; // Add this line to store candidate image hashes
     }
 
     mapping(uint => VotingEvent) public votingEvents;
@@ -70,8 +69,7 @@ contract Voting {
 
     function registerCandidate(
         uint256 eventId,
-        string memory _key,
-        string memory imageHash
+        string memory _key
     ) public {
         VotingEvent storage voting = votingEvents[eventId];
         require(
@@ -94,7 +92,6 @@ contract Voting {
 
         voting.registeredCandidates[msg.sender] = true; // Mark the sender as a registered candidate
         voting.candidates.push(msg.sender); // Add to the candidates list
-        voting.imageHashes[msg.sender] = imageHash; // Store the image hash
     }
 
     function vote(
@@ -128,14 +125,6 @@ contract Voting {
             resultVotes[i] = voting.votes[voting.candidates[i]];
         }
         return (voting.candidates, resultVotes);
-    }
-
-    function getCandidateImage(
-        uint256 eventId,
-        address candidate
-    ) public view returns (string memory) {
-        VotingEvent storage voting = votingEvents[eventId];
-        return voting.imageHashes[candidate]; // Return the image hash for the given candidate
     }
 
     function endVotingEvent(uint256 eventId) public onlyOrganizer(eventId) {
