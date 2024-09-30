@@ -6,9 +6,11 @@ module.exports = {
   solidity: "0.8.24",
   networks: {
     hardhat: {},
-    opencampus: {
+    zkEVMTestnet: {
       url: process.env.API_URL,
       accounts: process.env.PRIVATE_KEY !== undefined ? [`0x${process.env.PRIVATE_KEY}`] : [],
+      chainId: 2442,
+      gasPrice: 1000000000
     },
   }
  
