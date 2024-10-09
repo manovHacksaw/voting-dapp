@@ -24,7 +24,7 @@ async function main() {
      // Format the balance to Ether
      const formattedBalance = ethers.formatEther(balance);
 
-     console.log(`Balance of ${contractAddress}: ${formattedBalance} EDU`);
+     console.log(`Balance of ${contractAddress}: ${formattedBalance} ETH`);
 }
 
 main()
