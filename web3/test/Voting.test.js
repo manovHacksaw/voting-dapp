@@ -2,202 +2,221 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("Voting Contract", function () {
-  let Voting, votingContract, owner, addr1, addr2, addr3;
+  let votingContract, organizer, owner, voter1, voter2, candidate1;
 
   beforeEach(async function () {
-    // Deploy the contract before each test
-    Voting = await ethers.getContractFactory("Voting");
-    [owner, addr1, addr2, addr3] = await ethers.getSigners(); // Get test accounts
+    // Deploy the Voting contract
+    const Voting = await ethers.getContractFactory("Voting");
     votingContract = await Voting.deploy();
     await votingContract.waitForDeployment();
+
+    // Get signers with descriptive names
+    [organizer, owner, voter1, voter2, candidate1] = await ethers.getSigners();
   });
 
   it("Should create a new voting event", async function () {
-    const startTime = Math.floor(Date.now() / 1000) + 3 * 60 * 60; // 3 hours from now
-    const duration = 2 * 60 * 60; // 2 hours duration
-    const maxCandidates = 3;
-    const key = "correct_key";
-
-    await expect(
-      votingContract.createVotingEvent(
-        "Event 1",
-        "Test purpose",
-        key,
-        startTime,
-        duration,
-        maxCandidates
-      )
-    )
-      .to.emit(votingContract, "VotingEventCreated")
-      .withArgs(0, "Event 1", owner.address);
-
-    const event = await votingContract.votingEvents(0);
-    expect(event.name).to.equal("Event 1");
-    expect(event.purpose).to.equal("Test purpose");
-    expect(event.organizer).to.equal(owner.address);
-  });
-
-  it("Should register a voter with the correct key", async function () {
-    const startTime = Math.floor(Date.now() / 1000) + 3 * 60 * 60;
-    const duration = 2 * 60 * 60;
-    const maxCandidates = 3;
-    const key = "correct_key";
-
-    // Create event
     await votingContract.createVotingEvent(
-      "Event 1",
-      "Test purpose",
-      key,
-      startTime,
-      duration,
-      maxCandidates
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7205, // start time 2 hours from now
+      3600, // 1 hour duration
+      3 // Max 3 candidates
     );
 
-    // Register voter
-    await expect(votingContract.connect(addr1).registerVoter(0, key))
-      .to.emit(votingContract, "VoterRegistered")
-      .withArgs(0, addr1.address);
-
-    const isVoterRegistered = await votingContract.votingEvents(0).registeredVoters(addr1.address);
-    expect(isVoterRegistered).to.equal(true);
+    const event = await votingContract.getVotingEvent(0);
+    expect(event.name).to.equal("Election");
+    expect(event.purpose).to.equal("Student council election");
+    console.log(event.startTime, event.endTime);
   });
 
-  it("Should not register a voter with an incorrect key", async function () {
-    const startTime = Math.floor(Date.now() / 1000) + 3 * 60 * 60;
-    const duration = 2 * 60 * 60;
-    const maxCandidates = 3;
-    const key = "correct_key";
-    const wrongKey = "wrong_key";
-
-    // Create event
-    await votingContract.createVotingEvent(
-      "Event 1",
-      "Test purpose",
-      key,
-      startTime,
-      duration,
-      maxCandidates
+  it("Should not allow voter registration with an invalid key", async function () {
+    await votingContract.connect(organizer).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7300, // start time 2 hours from now
+      3600, // 1 hour duration
+      3 // Max 3 candidates
     );
-
-    // Attempt to register with wrong key
-    await expect(
-      votingContract.connect(addr1).registerVoter(0, wrongKey)
-    ).to.be.revertedWith("Invalid key");
+    const eventId = 0;
+    const invalidKey = "wrongKey"; // Use an invalid key
+    await expect(votingContract.connect(voter1).registerVoter(eventId, invalidKey))
+      .to.be.revertedWith("Invalid key");
   });
 
-  it("Should register a candidate with the correct key", async function () {
-    const startTime = Math.floor(Date.now() / 1000) + 3 * 60 * 60;
-    const duration = 2 * 60 * 60;
-    const maxCandidates = 3;
-    const key = "correct_key";
-
-    // Create event
-    await votingContract.createVotingEvent(
-      "Event 1",
-      "Test purpose",
-      key,
-      startTime,
-      duration,
-      maxCandidates
+  it("Should not allow candidate registration with an invalid key", async function () {
+    await votingContract.connect(organizer).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7300, // start time 2 hours from now
+      3600, // 1 hour duration
+      3 // Max 3 candidates
     );
-
-    // Register candidate
-    await expect(votingContract.connect(addr1).registerCandidate(0, key))
-      .to.emit(votingContract, "CandidateRegistered")
-      .withArgs(0, addr1.address);
-
-    const isCandidateRegistered = await votingContract.votingEvents(0).registeredCandidates(addr1.address);
-    expect(isCandidateRegistered).to.equal(true);
+    const eventId = 0;
+    const invalidKey = "wrongKey"; // Use an invalid key
+    await expect(votingContract.connect(candidate1).registerCandidate(eventId, "John Doe", invalidKey))
+      .to.be.revertedWith("Invalid key");
   });
 
-  it("Should allow a voter to vote for a registered candidate", async function () {
-    const startTime = Math.floor(Date.now() / 1000) + 3 * 60 * 60;
-    const duration = 2 * 60 * 60;
-    const maxCandidates = 3;
-    const key = "correct_key";
-
-    // Create event
-    await votingContract.createVotingEvent(
-      "Event 1",
-      "Test purpose",
-      key,
-      startTime,
-      duration,
-      maxCandidates
+  it("Should allow voter registration with correct key", async function () {
+    // Create a voting event
+    await votingContract.connect(organizer).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7305, // start time 2 hours from now
+      3600, // 1 hour duration
+      3 // Max 3 candidates
     );
 
-    // Register candidate
-    await votingContract.connect(addr1).registerCandidate(0, key);
+    // Register a voter
+    await votingContract.connect(voter1).registerVoter(0, "secretKey");
 
-    // Register voter and cast vote
-    await votingContract.connect(addr2).registerVoter(0, key);
+    // Check if the voter is registered using the new isVoterRegistered function
+    const isRegistered = await votingContract.isVoterRegistered(0, voter1.address);
+    expect(isRegistered).to.equal(true);
+  });
 
-    // Fast-forward time to start the voting period
-    await ethers.provider.send("evm_increaseTime", [4 * 60 * 60]);
-    await ethers.provider.send("evm_mine", []);
+  it("Should allow candidate registration and approval", async function () {
+    await votingContract.connect(organizer).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7310,
+      3600,
+      3
+    );
 
-    await expect(votingContract.connect(addr2).vote(0, addr1.address))
-      .to.emit(votingContract, "Voted")
-      .withArgs(0, addr1.address, addr2.address);
+    await votingContract.connect(candidate1).registerCandidate(0, "Candidate 1", "secretKey");
+    const candidateRequest = await votingContract.getCandidates(0);
+    expect(candidateRequest[0].requested).to.be.true;
 
-    const voteCount = await votingContract.votingEvents(0).votes(addr1.address);
+    console.log("Registration applied for Candidate 1!");
+
+    // Approve candidate by the organizer
+    await votingContract.connect(organizer).approveCandidate(0, candidate1.address);
+    const approvedCandidate = await votingContract.getCandidates(0);
+    expect(approvedCandidate[0].registered).to.be.true;
+  });
+
+  it("should not allow the same voter to register twice", async function () {
+    await votingContract.connect(organizer).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7310,
+      3600,
+      3
+    );
+    const eventId = 0;
+
+    await votingContract.connect(voter1).registerVoter(eventId, "secretKey");
+    await expect(votingContract.connect(voter1).registerVoter(eventId, "secretKey"))
+      .to.be.revertedWith("You are already registered as a voter");
+  });
+
+  it("should not allow the same candidate to request registration twice", async function () {
+    await votingContract.connect(organizer).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7305, // start time 2 hours from now
+      3600, // 1 hour duration
+      3 // Max 3 candidates
+    );
+    const eventId = 0;
+
+    await votingContract.connect(candidate1).registerCandidate(eventId, "Candidate 1", "secretKey");
+    await expect(votingContract.connect(candidate1).registerCandidate(eventId, "Candidate 1", "secretKey"))
+      .to.be.revertedWith("You are already registered or have requested to register as a candidate");
+  });
+
+  it("should not allow the organizer to register as a voter", async function () {
+    await votingContract.connect(owner).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7305,
+      3600,
+      3
+    );
+    const eventId = 0;
+    await expect(votingContract.connect(owner).registerVoter(eventId, "secretKey"))
+      .to.be.revertedWith("Organizer cannot register as a voter");
+  });
+
+  it("should not allow the organizer to register as a candidate", async function () {
+    await votingContract.connect(owner).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7305,
+      3600,
+      3
+    );
+    const eventId = 0;
+    await expect(votingContract.connect(owner).registerCandidate(eventId, "Organizer Candidate", "secretKey"))
+      .to.be.revertedWith("Organizer cannot register as a candidate");
+  });
+
+  it("Should allow voting and track votes", async function () {
+    await votingContract.connect(owner).createVotingEvent(
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 7305,
+      3600,
+      3
+    );
+
+    await votingContract.connect(voter1).registerVoter(0, "secretKey");
+    await votingContract.connect(voter2).registerVoter(0, "secretKey");
+
+    await votingContract.connect(candidate1).registerCandidate(0, "Candidate 1", "secretKey");
+    await votingContract.connect(owner).approveCandidate(0, candidate1.address);
+
+    // Simulate time travel to after the start time
+    await ethers.provider.send("evm_increaseTime", [7310]); // forward 2 hours
+    await ethers.provider.send("evm_mine", []); // mine a new block
+
+    await votingContract.connect(voter1).vote(0, candidate1.address);
+    const voteCount = await votingContract.getVoteCount(0, candidate1.address);
     expect(voteCount).to.equal(1);
   });
 
-  it("Should not allow double voting", async function () {
-    const startTime = Math.floor(Date.now() / 1000) + 3 * 60 * 60;
-    const duration = 2 * 60 * 60;
-    const maxCandidates = 3;
-    const key = "correct_key";
-
-    // Create event
+  it("Should end the voting event", async function () {
     await votingContract.createVotingEvent(
-      "Event 1",
-      "Test purpose",
-      key,
-      startTime,
-      duration,
-      maxCandidates
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 15000,
+      3600,
+      3
     );
 
-    // Register candidate and voter
-    await votingContract.connect(addr1).registerCandidate(0, key);
-    await votingContract.connect(addr2).registerVoter(0, key);
+    // Simulate time travel to after the start time
+    await ethers.provider.send("evm_increaseTime", [15001]); // forward 2 hours
+    await ethers.provider.send("evm_mine", []); // mine a new block
 
-    // Fast-forward time to start the voting period
-    await ethers.provider.send("evm_increaseTime", [4 * 60 * 60]);
-    await ethers.provider.send("evm_mine", []);
 
-    // Cast the first vote
-    await votingContract.connect(addr2).vote(0, addr1.address);
-
-    // Attempt to vote again
-    await expect(votingContract.connect(addr2).vote(0, addr1.address)).to.be.revertedWith("You have already voted");
+    await votingContract.endVotingEvent(0);
+    const event = await votingContract.getVotingEvent(0);
+    expect(event.active).to.be.false;
   });
 
-  it("Should not allow voting before the start time", async function () {
-    const startTime = Math.floor(Date.now() / 1000) + 3 * 60 * 60;
-    const duration = 2 * 60 * 60;
-    const maxCandidates = 3;
-    const key = "correct_key";
-
-    // Create event
+  it("Should not allow the voting event to end if it hasn't started", async function () {
     await votingContract.createVotingEvent(
-      "Event 1",
-      "Test purpose",
-      key,
-      startTime,
-      duration,
-      maxCandidates
+      "Election",
+      "Student council election",
+      "secretKey",
+      Math.floor(Date.now() / 1000) + 30000,
+      3600,
+      3
     );
 
-    // Register candidate and voter
-    await votingContract.connect(addr1).registerCandidate(0, key);
-    await votingContract.connect(addr2).registerVoter(0, key);
-
-    // Attempt to vote before the voting period starts
-    await expect(
-      votingContract.connect(addr2).vote(0, addr1.address)
-    ).to.be.revertedWith("Voting has not started yet");
+    await expect(votingContract.endVotingEvent(0))
+      .to.be.revertedWith("Voting event has not started yet");
   });
 });

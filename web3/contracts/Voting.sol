@@ -9,6 +9,9 @@ contract Voting {
     struct Candidate {
         string name; // Name of the candidate
         address candidateAddress; // Address of the candidate
+        uint256 voteCount; // Vote count for the candidate
+        bool requested; // Indicates if a candidate requested registration
+        bool registered; // Indicates if a candidate is officially registered
     }
 
     // Structure to represent a voting event
@@ -23,10 +26,7 @@ contract Voting {
         bool active; // Indicates if the event is currently active
         mapping(address => bool) hasVoted; // Tracks if an address has voted
         mapping(address => bool) registeredVoters; // Tracks registered voters
-        mapping(address => bool) candidateRequests; // Tracks candidate registration requests
-        mapping(address => bool) registeredCandidates; // Tracks registered candidates
         Candidate[] candidates; // Array of Candidate structs
-        mapping(address => uint256) votes; // Tracks votes for each candidate
     }
 
     // Mapping to store all voting events
@@ -103,103 +103,147 @@ contract Voting {
     }
 
     // Function to register a voter for a voting event
-    function registerVoter(uint256 eventId, string memory _key) public {
-        VotingEvent storage voting = votingEvents[eventId];
-        require(voting.active, "Voting event is not active");
-        require(
-            block.timestamp < voting.startTime,
-            "Voting has already started"
-        );
-        require(
-            !voting.registeredVoters[msg.sender],
-            "You are already registered as a voter"
-        );
-        require(
-            !voting.registeredCandidates[msg.sender],
-            "You cannot be a voter since you are a candidate"
-        );
-        require(
-            msg.sender != voting.organizer,
-            "Organizer cannot register as a voter"
-        );
-        require(
-            keccak256(abi.encodePacked(_key)) == keccak256(abi.encodePacked(voting.key)),
-            "Invalid key"
-        );
+function registerVoter(uint256 eventId, string memory _key) public {
+    VotingEvent storage voting = votingEvents[eventId];
+    require(voting.active, "Voting event is not active");
+    require(block.timestamp < voting.startTime, "Voting has already started");
+    require(!voting.registeredVoters[msg.sender], "You are already registered as a voter");
+    require(msg.sender != voting.organizer, "Organizer cannot register as a voter");
 
-        // Register the voter
-        voting.registeredVoters[msg.sender] = true;
-        emit VoterRegistered(eventId, msg.sender);
+    // Ensure the sender is not already registered as a candidate
+    for (uint256 i = 0; i < voting.candidates.length; i++) {
+        require(
+            voting.candidates[i].candidateAddress != msg.sender,
+            "You cannot register as a voter since you are a candidate"
+        );
     }
 
-    // Function to request registration as a candidate for a voting event
-    function registerCandidate(uint256 eventId, string memory _name, string memory _key) public {
-        VotingEvent storage voting = votingEvents[eventId];
-        require(voting.active, "Voting event is not active");
-        require(
-            block.timestamp < voting.startTime,
-            "Voting has already started"
-        );
-        require(
-            !voting.registeredCandidates[msg.sender],
-            "You are already registered as a candidate"
-        );
-        require(
-            voting.candidates.length < voting.maxCandidates,
-            "Max number of candidates reached"
-        );
-        require(
-            !voting.registeredVoters[msg.sender],
-            "You cannot be a candidate since you are a voter"
-        );
-        require(
-            msg.sender != voting.organizer,
-            "Organizer cannot register as a candidate"
-        );
-        require(
-            keccak256(abi.encodePacked(_key)) == keccak256(abi.encodePacked(voting.key)),
-            "Invalid key"
-        );
+    require(keccak256(abi.encodePacked(_key)) == keccak256(abi.encodePacked(voting.key)), "Invalid key");
 
-        // Mark the candidate request
-        voting.candidateRequests[msg.sender] = true;
-        emit CandidateRequestMade(eventId, _name, msg.sender);
+    // Register the voter
+    voting.registeredVoters[msg.sender] = true;
+    emit VoterRegistered(eventId, msg.sender);
+}
+
+    // Function to check if a voter is registered for a specific event
+    function isVoterRegistered(
+        uint256 eventId,
+        address voter
+    ) public view returns (bool) {
+        return votingEvents[eventId].registeredVoters[voter];
     }
+
+   // Function to request registration as a candidate for a voting event
+function registerCandidate(
+    uint256 eventId,
+    string memory _name,
+    string memory _key
+) public {
+    VotingEvent storage voting = votingEvents[eventId];
+    require(voting.active, "Voting event is not active");
+    require(block.timestamp < voting.startTime, "Voting has already started");
+    require(voting.candidates.length < voting.maxCandidates, "Max number of candidates reached");
+
+    // Ensure the sender is not already registered as a voter or organizer
+    require(!voting.registeredVoters[msg.sender], "You cannot register as a candidate since you are a voter");
+    require(msg.sender != voting.organizer, "Organizer cannot register as a candidate");
+
+    require(
+        keccak256(abi.encodePacked(_key)) == keccak256(abi.encodePacked(voting.key)),
+        "Invalid key"
+    );
+
+    // Ensure the candidate is not already registered or has not requested
+    for (uint256 i = 0; i < voting.candidates.length; i++) {
+        require(
+            voting.candidates[i].candidateAddress != msg.sender,
+            "You are already registered or have requested to register as a candidate"
+        );
+    }
+
+    // Add candidate request
+    voting.candidates.push(Candidate(_name, msg.sender, 0, true, false)); // Vote count is 0, requested is true
+    emit CandidateRequestMade(eventId, _name, msg.sender);
+}
 
     // Function to approve a candidate's registration request
-    function approveCandidate(uint256 eventId, address candidate, string memory name) public onlyOrganizer(eventId) {
+    function approveCandidate(
+        uint256 eventId,
+        address candidate
+    ) public onlyOrganizer(eventId) {
         VotingEvent storage voting = votingEvents[eventId];
-
-        // Ensure the voting event is active and hasn't started
         require(voting.active, "Voting event is not active");
-        require(block.timestamp < voting.startTime, "Voting has already started");
-        require(voting.candidateRequests[candidate], "Candidate has not requested registration");
+        require(
+            block.timestamp < voting.startTime,
+            "Voting has already started"
+        );
 
-        // Officially register the candidate
-        voting.registeredCandidates[candidate] = true;
-        voting.candidates.push(Candidate(name, candidate)); // Store the candidate with their name
-        delete voting.candidateRequests[candidate]; // Remove the candidate request
-
-        emit CandidateRegistered(eventId, name, candidate);
+        // Find and approve the candidate in the array
+        for (uint256 i = 0; i < voting.candidates.length; i++) {
+            if (voting.candidates[i].candidateAddress == candidate) {
+                require(
+                    voting.candidates[i].requested,
+                    "Candidate has not requested registration"
+                );
+                voting.candidates[i].registered = true; // Officially register the candidate
+                emit CandidateRegistered(
+                    eventId,
+                    voting.candidates[i].name,
+                    candidate
+                );
+                return;
+            }
+        }
+        revert("Candidate not found");
     }
 
     // Function to cast a vote for a candidate
-    function vote(uint256 eventId, address candidate) public votingStarted(eventId) {
+    function vote(
+        uint256 eventId,
+        address candidate
+    ) public votingStarted(eventId) {
         VotingEvent storage voting = votingEvents[eventId];
 
-        require(voting.registeredVoters[msg.sender], "You are not a registered voter");
+         
+        require(
+            voting.registeredVoters[msg.sender],
+            "You are not a registered voter"
+        );
+        
         require(!voting.hasVoted[msg.sender], "You have already voted");
-        require(voting.registeredCandidates[candidate], "Candidate is not registered");
 
-        // Register the vote
-        voting.hasVoted[msg.sender] = true; // Mark as voted
-        voting.votes[candidate]++; // Increment vote count for the candidate
 
-        emit Voted(eventId, candidate, msg.sender);
+
+        // Increment the vote count for the candidate
+        for (uint256 i = 0; i < voting.candidates.length; i++) {
+            if (
+                voting.candidates[i].candidateAddress == candidate &&
+                voting.candidates[i].registered
+            ) {
+                voting.candidates[i].voteCount++;
+                voting.hasVoted[msg.sender] = true;
+                emit Voted(eventId, candidate, msg.sender);
+                return;
+            }
+        }
+        revert("Candidate not found or not registered");
     }
 
     // Function to get details of a voting event
-    function getVotingEvent(uint256 eventId) public view returns (string memory, string memory, address, uint256, uint256, bool) {
+    function getVotingEvent(
+        uint256 eventId
+    )
+        public
+        view
+        returns (
+            string memory name,
+            string memory purpose,
+            address organizer,
+            uint256 startTime,
+            uint256 endTime,
+            bool active
+        )
+    {
         VotingEvent storage voting = votingEvents[eventId];
         return (
             voting.name,
@@ -214,16 +258,16 @@ contract Voting {
     // Function to end a voting event
     function endVotingEvent(uint256 eventId) public onlyOrganizer(eventId) {
         VotingEvent storage voting = votingEvents[eventId];
-
+        require(block.timestamp > voting.startTime, "Voting event has not started yet");
         require(voting.active, "Voting event is already ended");
-
+        voting.active = false; // Mark the event as inactive
         // Ensure all registered voters have voted
         uint256 totalRegisteredVoters = 0;
         for (uint256 i = 0; i < voting.candidates.length; i++) {
             totalRegisteredVoters += voting.registeredVoters[voting.candidates[i].candidateAddress] ? 1 : 0;
         }
 
-        // Check if all registered voters have voted
+         // Check if all registered voters have voted
         require(totalRegisteredVoters == voting.candidates.length, "Not all registered voters have voted");
 
         // Mark the event as inactive
@@ -231,17 +275,30 @@ contract Voting {
     }
 
     // Function to get the list of candidates for a voting event
-    function getCandidates(uint256 eventId) public view returns (Candidate[] memory) {
+    function getCandidates(
+        uint256 eventId
+    ) public view returns (Candidate[] memory) {
         return votingEvents[eventId].candidates;
     }
 
     // Function to get the vote count for a specific candidate
-    function getVoteCount(uint256 eventId, address candidate) public view returns (uint256) {
-        return votingEvents[eventId].votes[candidate];
+    function getVoteCount(
+        uint256 eventId,
+        address candidate
+    ) public view returns (uint256) {
+        VotingEvent storage voting = votingEvents[eventId];
+        for (uint256 i = 0; i < voting.candidates.length; i++) {
+            if (voting.candidates[i].candidateAddress == candidate) {
+                return voting.candidates[i].voteCount;
+            }
+        }
+        revert("Candidate not found");
     }
 
     // Function to get the results of a voting event
-    function getVotingResults(uint256 eventId) public view returns (address winner) {
+    function getVotingResults(
+        uint256 eventId
+    ) public view returns (address winner) {
         VotingEvent storage voting = votingEvents[eventId];
         require(!voting.active, "Voting event is still active");
 
@@ -250,12 +307,9 @@ contract Voting {
 
         // Iterate through candidates to find the winner
         for (uint256 i = 0; i < voting.candidates.length; i++) {
-            address candidate = voting.candidates[i].candidateAddress;
-            uint256 voteCount = voting.votes[candidate];
-
-            if (voteCount > highestVotes) {
-                highestVotes = voteCount;
-                topCandidate = candidate;
+            if (voting.candidates[i].voteCount > highestVotes) {
+                highestVotes = voting.candidates[i].voteCount;
+                topCandidate = voting.candidates[i].candidateAddress;
             }
         }
         return topCandidate; // Return the address of the winning candidate
