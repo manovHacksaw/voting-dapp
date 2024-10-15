@@ -1,8 +1,11 @@
 const { ethers } = require('hardhat');
 
-
 async function main() {
      console.log("Initializing contract deployment...");
+
+     // Get the deployer's signer
+     const [deployer] = await ethers.getSigners();
+     console.log("Deployer address:", deployer.address);
 
      // Get the contract factory
      const Voting = await ethers.getContractFactory("Voting");
@@ -19,12 +22,12 @@ async function main() {
      console.log("Voting contract deployed successfully!");
      console.log("Contract Address:", contractAddress);
 
-     // Fetch the balance
-     const balance = await ethers.provider.getBalance(contractAddress);
+     // Fetch the deployer's balance
+     const deployerBalance = await ethers.provider.getBalance(deployer.address);
      // Format the balance to Ether
-     const formattedBalance = ethers.formatEther(balance);
+     const formattedBalance = ethers.formatEther(deployerBalance);
 
-     console.log(`Balance of ${contractAddress}: ${formattedBalance} ETH`);
+     console.log(`Deployer's balance: ${formattedBalance} ETH`);
 }
 
 main()
