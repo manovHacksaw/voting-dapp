@@ -1,4 +1,5 @@
 "use client";
+import Campaigns from '@/components/Campaigns';
 import Header from '@/components/Header';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,8 @@ const Page = () => {
     <div>
      <Navbar/>
      <Header/>
+
+     <Campaigns/>
 
       
     </div>

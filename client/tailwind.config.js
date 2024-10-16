@@ -9,7 +9,8 @@ module.exports = {
   theme: {
   	extend: {
   		fontFamily: {
-  			sans: ['Roboto Mono', 'Montserrat', 'sans-serif']
+  			sans: ['Roboto Mono', 'Montserrat', 'sans-serif'],
+			poppins: ["Poppins", 'sans-serif']
   		},
 		  backgroundImage: {
 			 // Define your gradient here
