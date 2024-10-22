@@ -2,25 +2,28 @@
 import React, { useEffect } from 'react';
 import EventCard from './EventCard';
 import { useVoting } from '@/context/VotingContext';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const Campaigns = () => {
     const { campaigns, getCampaigns, loading, contract } = useVoting();
 
-//     useEffect(() => {
-//         const fetchCampaigns = async () => {
-//             try {
-//                 await getCampaigns(); // Fetch campaigns
-//                 console.log(campaigns)
-//             } catch (error) {
-//                 console.error("Failed to load campaigns:", error);
-//             }
-//         };
+    const router = useRouter();
 
-//         fetchCampaigns();
-//     }, [contract]); 
+ 
 
     if (loading) {
-        return <div className="text-center">Loading campaigns...</div>;
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <Image 
+                    src={"/loader.gif"} 
+                    width={80} 
+                    height={80} 
+                    
+                    alt="Loading..."
+                />
+            </div>
+        );
     }
 
     return (
@@ -29,7 +32,8 @@ const Campaigns = () => {
                 <div className="text-center">No campaigns available.</div>
             ) : (
                 campaigns.map((event, index) => (
-                    <EventCard key={index} event={event} />
+                    
+                    <EventCard  key={index} event={event} index={index} />
                 ))
             )}
         </div>

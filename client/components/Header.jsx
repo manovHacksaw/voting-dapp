@@ -3,10 +3,13 @@ import WalletInfo from './WalletInfo';
 import Image from 'next/image';
 import { useVoting } from '@/context/VotingContext'; // Assuming you're using this context for wallet management
 import { Button } from './ui/button';
+import { useRouter } from 'next/navigation';
 
 const Header = () => {
   const { account, balance, connectWallet } = useVoting(); // Get account and balance from context
   const [showWalletInfo, setShowWalletInfo] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => {
     // Show wallet info when account is connected
@@ -36,7 +39,7 @@ const Header = () => {
         Decentralize Your Decisions by Valuing All Opinions!
       </p>
       
-      <Button className="px-10 py-8 font-bold text-lg tracking-[0.1em] bg-blue-800 text-white rounded-md shadow-lg hover:bg-blue-700 hover:tracking-[0.25em] transition-all duration-300 ease-in-out">
+      <Button onClick = {()=>{router.push("/create-campaign")}} className="px-10 py-8 font-bold text-lg tracking-[0.1em] bg-blue-800 text-white rounded-md shadow-lg hover:bg-blue-700 hover:tracking-[0.25em] transition-all duration-300 ease-in-out">
         Get Started
       </Button>
 
