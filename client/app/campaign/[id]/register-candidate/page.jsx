@@ -5,36 +5,26 @@ import MetaMaskLoader from '@/components/MetaMaskLoader';
 import WalletInfo from '@/components/WalletInfo';
 
 const RegisterCandidate = ({ params }) => {
-    const { connectWallet, registerAsCandidate, isConnected, account, loading, balance, getCampaignById,  } = useVoting();
+    const { connectWallet, registerAsCandidate, isConnected, account, loading, balance, getCampaignById } = useVoting();
     const [name, setName] = useState('');
     const [key, setKey] = useState('');
-    const [event, setEvent] = useState(null); // State to store event details
+    const [event, setEvent] = useState(null); // Store event details
     const [error, setError] = useState('');
     const [registrationStatus, setRegistrationStatus] = useState(''); // Track registration status
 
+    // Fetch the event details on component mount and whenever the event ID changes
     useEffect(() => {
         const fetchEvent = async () => {
-            const fetchedEvent = await getCampaignById(params.id);
-            setEvent(fetchedEvent);
+            try {
+                const fetchedEvent = await getCampaignById(params.id);
+                setEvent(fetchedEvent);
+            } catch (err) {
+                setError("Failed to fetch event details. Please try again later.");
+            }
         };
 
         fetchEvent();
     }, [params.id]);
-
-//     useEffect(() => {
-//         const checkRegistrationStatus = async () => {
-//             if (isConnected && event) {
-//                //  const isRegistered = await isCandidateRegistered(params.id, account);
-//                 if (isRegistered) {
-//                     setRegistrationStatus('You have registered, wait for approval.');
-//                 } else {
-//                     setRegistrationStatus('');
-//                 }
-//             }
-//         };
-
-//         checkRegistrationStatus();
-//     }, [isConnected, event, account, params.id]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -46,19 +36,22 @@ const RegisterCandidate = ({ params }) => {
         }
 
         try {
-            await registerAsCandidate(params.id, name, key);
-            // Reset the form after successful submission
-            setName('');
-            setKey('');
-            setRegistrationStatus('You have registered, wait for approval.'); // Update registration status
+            const success = await registerAsCandidate(params.id, name, key);
+            if (success) {
+                setName('');
+                setKey('');
+                setRegistrationStatus('You have registered, wait for approval.');
+            } else {
+                setError('Failed to register candidate. Please try again.');
+            }
         } catch (err) {
-            setError('Failed to register candidate. Please try again.');
+            setError('An error occurred. Please try again.');
         }
     };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r p-6 relative">
-            {/* Loader when connecting or during transactions */}
+            {/* Loader during connecting or transactions */}
             <MetaMaskLoader loading={loading} />
 
             {/* Wallet Info Section */}
@@ -74,8 +67,6 @@ const RegisterCandidate = ({ params }) => {
                     </button>
                 )}
             </div>
-
-            
 
             {/* Event details */}
             {event && (

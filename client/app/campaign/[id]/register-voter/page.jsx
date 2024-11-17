@@ -23,13 +23,17 @@ const RegisterVoter = ({ params }) => {
             alert("Please connect your wallet first.");
             return;
         }
-
+    
         if (key) {
-            await registerAsVoter(params.id, key);
+            const success = await registerAsVoter(params.id, key); // Pass key here
+            if (success) {
+                alert("Successfully registered as a voter!");
+            }
         } else {
             alert("Please enter a valid key");
         }
     };
+    
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r  p-6 relative">
