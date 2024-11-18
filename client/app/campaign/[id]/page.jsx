@@ -397,7 +397,7 @@ const Campaign = ({ params }) => {
                           variant="primary"
                           className="bg-blue-500 text-white font-semibold px-3 py-1 rounded-md"
                         >
-                          {voteCounts[candidate.candidateAddress]} Votes
+                          {voteCounts[candidate.candidateAddress]} Votes 
                         </Badge>
                       </div>
                     ))}

@@ -1,5 +1,5 @@
 "use client";
-
+// NEXT_PUBLIC_CONTRACT_ADDRESS=0x1F181E2d3d224893ACa8740d3a76864D4C1a3FfA
 import { ethers } from "ethers";
 import { createContext, useState, useEffect, useContext, useMemo } from "react";
 import { Voting } from "@/lib/constants";
