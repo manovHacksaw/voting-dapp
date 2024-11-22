@@ -1,71 +1,122 @@
-# Web3.0 Voting Application
+# PolyTix - Decentralized Voting Platform  
 
-This project demonstrates a decentralized voting application built using Next.js and Solidity. It allows users to participate in voting events by registering as voters or candidates and supports wallet connectivity.
+PolyTix is a blockchain-based decentralized voting application designed for transparency, security, and ease of use. Built using **Next.js** and **Polygon zkEVM**, PolyTix ensures seamless participation and management of voting events in a trustless environment.
 
-## Commit Message - "Deployed the Voting Contract and Started the Frontend"
+---
 
-### Event Details Page:
-- Created a dynamic route to display details of a specific voting event.
-- Used `params` to extract the event ID from the URL.
-- Fetched and displayed event details such as the event name, purpose, and organizer.
-- Implemented conditional rendering based on whether the user has connected their wallet or not.
+## Features  
+- **Decentralized Voting**: Create and manage voting events directly on the blockchain.  
+- **Wallet Integration**: Supports wallet connections for identity verification and participation.  
+- **Light/Dark Mode**: Toggle between light and dark themes for a personalized experience.  
+- **Real-Time Voting Data**: See live updates of voting statuses.  
+- **Secure and Transparent**: Powered by Polygon zkEVM for secure transactions and transparent results.  
+- **Customizable Themes**: Designed with a purple-themed homepage, styled using Tailwind CSS.  
 
-### Conditional Rendering:
-- Added checks to display a message prompting users to connect their wallet if no account is detected.
-- Displayed a loading message while fetching the event details from the contract.
-- Ensured that after the data is fetched, event details and candidates are displayed.
+---
 
-### Wallet Connection:
-- Updated logic to ensure the wallet is connected before participating in the voting event.
+## Tech Stack  
+- **Frontend**: Next.js with Tailwind CSS  
+- **Blockchain**: Polygon zkEVM  
+- **Wallet Management**: Ethers.js  
+- **Smart Contracts**: Solidity  
 
-### Bug Fixes:
-- Resolved issues where the event details page was not loading correctly when the page was refreshed.
-- Fixed the `useEffect` dependency array to correctly wait for the voting events to load before attempting to fetch the event details.
+---
 
-### Learning:
-- Learned how to test smart contracts using Hardhat, improving the reliability and functionality of the contract code.
+## Folder Structure  
 
-## Features
+```plaintext
+client/
+│
+├── .gitignore
+├── jsconfig.json
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── README.md
+├── tailwind.config.js
+│
+├── app/
+│   ├── components/    # Reusable React components
+│   ├── pages/         # Application pages (e.g., Home, RegisterVoter, CreateCampaign)
+│   ├── hooks/         # Custom hooks (e.g., useVoting)
+│   ├── context/       # Context providers (e.g., VotingProvider)
+│   ├── styles/        # Global styles
+│
+├── node_modules/      # Dependencies
+```
 
-- **Wallet Connection**: Users can connect their wallets to participate in voting.
-- **Voting Events**: Users can view ongoing voting events and their details.
-- **Registration**: Users can register as voters or candidates for specific voting events.
-- **Real-time Updates**: The application updates the UI based on the voting event details and user interactions.
+---
 
-## Technologies Used
+## Installation  
 
-- **Next.js**: Framework for building the frontend.
-- **Solidity**: Smart contract language for the voting logic.
-- **Ethers.js**: Library for interacting with the Ethereum blockchain.
-- **React Context API**: For state management across components.
-
-## Getting Started
-
-1. Clone the repository:
+1. Clone the repository:  
    ```bash
-   git clone https://github.com/yourusername/voting-dapp.git
-   cd voting-dapp
+   git clone https://github.com/manovHacksaw/polytix.git
+   cd polytix
+   ```
 
-2. Install the dependencies:
+2. Install dependencies:  
    ```bash
    npm install
+   ```
 
-3. Start the development server: 
+3. Set up the environment variables:  
+   - Create a `.env.local` file in the root directory.
+   - Add the required blockchain network and wallet configuration details.
+
+4. Run the application:  
    ```bash
    npm run dev
+   ```
 
-4. Open your browser and navigate to http://localhost:3000.
+---
 
-## Running Tests
-- To run tests for the smart contracts, use:
-  ```bash  npx hardhat test
-   
+## Usage  
 
-## Deployement
-- You can deploy the smart contracts to a local Ethereum node or a testnet. Use the following command for local deployment:
-  ```bash
- npx hardhat node
+### Creating a Voting Event  
+1. Navigate to the "Create Campaign" page.  
+2. Provide event details such as name, purpose, and timeline.  
+3. Deploy the event to the blockchain.  
 
- ## Acknowledgements
-- **OpenAI:** For assistance in developing and refining this project.
-- **Ethereum Community:** For resources and documentation.
+### Registering Voters  
+1. Go to the "Register Voter" page.  
+2. Input wallet addresses of voters and confirm the registration.  
+
+### Participating in a Vote  
+1. Connect your wallet.  
+2. Join the active voting event.  
+3. Cast your vote securely and transparently.  
+
+---
+
+## Contributing  
+We welcome contributions!  
+1. Fork the repository.  
+2. Create a new branch:  
+   ```bash
+   git checkout -b feature-name
+   ```  
+3. Commit your changes:  
+   ```bash
+   git commit -m "Add feature-name"
+   ```  
+4. Push to the branch:  
+   ```bash
+   git push origin feature-name
+   ```  
+5. Open a Pull Request.  
+
+---
+
+## License  
+PolyTix is licensed under the [MIT License](LICENSE).  
+
+---
+
+## Acknowledgments  
+PolyTix is a project created to demonstrate the potential of blockchain technology in enhancing transparency and security in voting processes. Special thanks to contributors and the blockchain community for their support and inspiration.  
+
+--- 
+
+Start voting the decentralized way with **PolyTix**! 🚀
